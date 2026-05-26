@@ -1,21 +1,36 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { getSupabaseEnv } from "@/lib/env";
+import { tryGetSupabaseEnv } from "@/lib/env";
 import type { Database } from "@/lib/types/database";
 
 const isProtectedPath = (pathname: string): boolean =>
   pathname === "/posts/new" ||
   /^\/posts\/\d+\/edit$/.test(pathname);
 
-export const updateSession = async (request: NextRequest) => {
-  let supabaseResponse = NextResponse.next({ request });
+const handleMissingEnv = (request: NextRequest): NextResponse => {
+  if (isProtectedPath(request.nextUrl.pathname)) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("next", request.nextUrl.pathname);
+    return NextResponse.redirect(url);
+  }
 
-  const { url, key } = getSupabaseEnv();
+  return NextResponse.next({ request });
+};
 
-  const supabase = createServerClient<Database>(
-    url,
-    key,
-    {
+export const updateSession = async (
+  request: NextRequest,
+): Promise<NextResponse> => {
+  const env = tryGetSupabaseEnv();
+
+  if (!env) {
+    return handleMissingEnv(request);
+  }
+
+  try {
+    let supabaseResponse = NextResponse.next({ request });
+
+    const supabase = createServerClient<Database>(env.url, env.key, {
       cookies: {
         getAll: () => request.cookies.getAll(),
         setAll: (cookiesToSet) => {
@@ -28,19 +43,21 @@ export const updateSession = async (request: NextRequest) => {
           });
         },
       },
-    },
-  );
+    });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  if (!user && isProtectedPath(request.nextUrl.pathname)) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("next", request.nextUrl.pathname);
-    return NextResponse.redirect(url);
+    if (!user && isProtectedPath(request.nextUrl.pathname)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("next", request.nextUrl.pathname);
+      return NextResponse.redirect(url);
+    }
+
+    return supabaseResponse;
+  } catch {
+    return handleMissingEnv(request);
   }
-
-  return supabaseResponse;
 };

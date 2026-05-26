@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { getSupabaseEnv } from "./env";
+import { getSupabaseEnv, tryGetSupabaseEnv } from "./env";
 
 const originalEnv = { ...process.env };
 
@@ -35,5 +35,15 @@ describe("getSupabaseEnv", () => {
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "key";
 
     expect(() => getSupabaseEnv()).toThrow(/NEXT_PUBLIC_SUPABASE_URL/);
+  });
+});
+
+describe("tryGetSupabaseEnv", () => {
+  it("returns null when env is incomplete", () => {
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+    delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    expect(tryGetSupabaseEnv()).toBeNull();
   });
 });

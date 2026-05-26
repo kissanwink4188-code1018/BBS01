@@ -29,3 +29,17 @@ export const getSupabaseEnv = (): SupabaseEnv => {
 
   return { url, key };
 };
+
+/** 미들웨어/프록시용 — 없으면 null (throw 하지 않음) */
+export const tryGetSupabaseEnv = (): SupabaseEnv | null => {
+  const url = readEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const key =
+    readEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY") ??
+    readEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+
+  if (!url || !key) {
+    return null;
+  }
+
+  return { url, key };
+};
