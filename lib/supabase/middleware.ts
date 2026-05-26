@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getSupabaseEnv } from "@/lib/env";
 import type { Database } from "@/lib/types/database";
 
 const isProtectedPath = (pathname: string): boolean =>
@@ -9,9 +10,11 @@ const isProtectedPath = (pathname: string): boolean =>
 export const updateSession = async (request: NextRequest) => {
   let supabaseResponse = NextResponse.next({ request });
 
+  const { url, key } = getSupabaseEnv();
+
   const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    url,
+    key,
     {
       cookies: {
         getAll: () => request.cookies.getAll(),
